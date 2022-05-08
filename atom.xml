@@ -3,11 +3,11 @@
   <title>郭颐的博客</title>
   
   <subtitle>郭颐的博客</subtitle>
-  <link href="http://example.com/atom.xml" rel="self"/>
+  <link href="https://gy5461.github.io/project/atom.xml" rel="self"/>
   
-  <link href="http://example.com/"/>
+  <link href="https://gy5461.github.io/project/"/>
   <updated>2022-05-08T09:27:36.177Z</updated>
-  <id>http://example.com/</id>
+  <id>https://gy5461.github.io/project/</id>
   
   <author>
     <name>郭颐</name>
@@ -18,8 +18,8 @@
   
   <entry>
     <title>One Sister have I in our house</title>
-    <link href="http://example.com/2022/05/08/OneSister/"/>
-    <id>http://example.com/2022/05/08/OneSister/</id>
+    <link href="https://gy5461.github.io/project/2022/05/08/OneSister/"/>
+    <id>https://gy5461.github.io/project/2022/05/08/OneSister/</id>
     <published>2022-05-08T09:22:12.980Z</published>
     <updated>2022-05-08T09:27:36.177Z</updated>
     
@@ -41,8 +41,8 @@
   
   <entry>
     <title>独白</title>
-    <link href="http://example.com/2022/05/08/%E7%8B%AC%E7%99%BD/"/>
-    <id>http://example.com/2022/05/08/%E7%8B%AC%E7%99%BD/</id>
+    <link href="https://gy5461.github.io/project/2022/05/08/%E7%8B%AC%E7%99%BD/"/>
+    <id>https://gy5461.github.io/project/2022/05/08/%E7%8B%AC%E7%99%BD/</id>
     <published>2022-05-08T09:13:44.915Z</published>
     <updated>2022-05-08T09:16:08.148Z</updated>
     
@@ -63,8 +63,8 @@
   
   <entry>
     <title>二到三十六进制转换</title>
-    <link href="http://example.com/2022/05/08/%E8%BF%9B%E5%88%B6%E8%BD%AC%E6%8D%A2/"/>
-    <id>http://example.com/2022/05/08/%E8%BF%9B%E5%88%B6%E8%BD%AC%E6%8D%A2/</id>
+    <link href="https://gy5461.github.io/project/2022/05/08/%E8%BF%9B%E5%88%B6%E8%BD%AC%E6%8D%A2/"/>
+    <id>https://gy5461.github.io/project/2022/05/08/%E8%BF%9B%E5%88%B6%E8%BD%AC%E6%8D%A2/</id>
     <published>2022-05-08T04:54:27.830Z</published>
     <updated>2022-05-08T09:04:54.559Z</updated>
     
@@ -84,8 +84,8 @@
   
   <entry>
     <title>我的第一篇博客</title>
-    <link href="http://example.com/2022/05/08/%E6%88%91%E7%9A%84%E7%AC%AC%E4%B8%80%E7%AF%87%E5%8D%9A%E5%AE%A2/"/>
-    <id>http://example.com/2022/05/08/%E6%88%91%E7%9A%84%E7%AC%AC%E4%B8%80%E7%AF%87%E5%8D%9A%E5%AE%A2/</id>
+    <link href="https://gy5461.github.io/project/2022/05/08/%E6%88%91%E7%9A%84%E7%AC%AC%E4%B8%80%E7%AF%87%E5%8D%9A%E5%AE%A2/"/>
+    <id>https://gy5461.github.io/project/2022/05/08/%E6%88%91%E7%9A%84%E7%AC%AC%E4%B8%80%E7%AF%87%E5%8D%9A%E5%AE%A2/</id>
     <published>2022-05-08T04:54:27.830Z</published>
     <updated>2022-05-08T09:03:56.712Z</updated>
     
