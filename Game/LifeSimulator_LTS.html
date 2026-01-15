@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 人生模拟器：浮生若梦 (最终典藏版)</title>
+    <style>
+        :root { --bg: #f5f2e9; --panel: #fdfcf8; --text: #2c2c2c; --primary: #5d5043; --border: #dcd3c1; --accent: #c0a46d; --success: #6b8e23; --danger: #a0522d; --love: #e056fd; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: "Slabo 27px", "STKaiti", "KaiTi", serif; color: var(--text); overflow: hidden; user-select: none; }
+        
+        /* 复古组件 */
+        .btn-retro { padding: 8px 16px; border: 1px solid var(--primary); background: var(--panel); color: var(--primary); font-size: 15px; cursor: pointer; transition: 0.1s; box-shadow: 2px 2px 0 var(--border); border-radius: 2px; font-family: inherit; font-weight: bold; position: relative; overflow: hidden; }
+        .btn-retro:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--border); }
+        .btn-retro:disabled { opacity: 0.6; cursor: not-allowed; background: #eee; }
+        .btn-love { border-color: var(--love); color: var(--love); }
+        
+        .hidden { display: none !important; }
+        .full-panel { position: fixed; inset: 0; background: rgba(245, 242, 233, 0.98); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .paper-card { background: var(--panel); border: 1px solid var(--border); box-shadow: 6px 6px 0 rgba(0,0,0,0.05); padding: 25px; max-width: 100%; width: 550px; position: relative; max-height: 90vh; overflow-y: auto; }
+
+        /* 顶部栏 */
+        #top-bar { position: fixed; top: 15px; right: 15px; z-index: 2000; display: flex; gap: 10px; }
+        .icon-btn { background: rgba(253, 252, 248, 0.9); padding: 6px 12px; border: 1px solid var(--border); cursor: pointer; font-size: 14px; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+        .status-dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
+
+        /* 滑块样式 */
+        .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .slider-label { width: 45px; font-weight: bold; font-size: 16px; color: var(--primary); }
+        .slider-btn { width: 28px; height: 28px; border: 1px solid var(--primary); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--primary); font-family: monospace; font-size: 18px; }
+        .slider-input { flex: 1; -webkit-appearance: none; height: 6px; background: #e0ddd3; outline: none; margin: 0 5px; border-radius: 3px; border: 1px solid #ccc; }
+        .slider-input::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--primary); border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; position: relative; z-index: 2; }
+        .slider-val { width: 35px; text-align: right; font-family: monospace; font-size: 18px; font-weight: bold; color: var(--accent); }
+
+        /* 游戏主界面 */
+        #game-view { display: flex; height: 100vh; width: 100vw; max-width: 1200px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+        .side-bar { width: 320px; background: #f2efe4; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+        .log-area { flex: 1; background: var(--bg); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* 侧边栏信息 */
+        .info-block { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px dashed var(--border); }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 15px; }
+        .info-val { font-weight: bold; color: var(--text); }
+
+        /* 功能按钮区 */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .action-btn { padding: 10px 5px; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+
+        /* 状态条 */
+        .stat-group { margin-bottom: 10px; }
+        .stat-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #555; }
+        .stat-progress { height: 8px; background: #e6e2d3; border: 1px solid rgba(0,0,0,0.05); border-radius: 2px; }
+        .stat-fill { height: 100%; background: var(--primary); transition: 0.5s; width: 0%; }
+
+        /* 日志 */
+        #event-log { flex: 1; overflow-y: auto; padding: 30px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .year-block { margin-bottom: 25px; border-left: 3px solid var(--border); padding-left: 18px; animation: fadeIn 0.5s ease; }
+        .year-num { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 6px; font-family: "KaiTi", serif; }
+        .year-text { font-size: 17px; line-height: 1.6; color: #333; text-align: justify; }
+        
+        /* 列表样式 */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .list-info { flex: 1; }
+        .list-actions { display: flex; gap: 5px; }
+        .item-name { font-weight: bold; color: var(--primary); }
+        .heart-val { color: var(--love); font-weight: bold; font-size: 13px; margin-left: 5px; }
+        .rel-tag { font-size: 11px; padding: 2px 4px; border-radius: 3px; background: #eee; color: #666; margin-left: 5px; }
+
+        /* 结局样式 */
+        .death-summary { text-align: left; background: #fff; padding: 20px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 20px; font-size: 15px; line-height: 1.8; color: #444; max-height: 300px; overflow-y: auto; }
+        .epitaph { font-size: 24px; font-family: "KaiTi"; color: var(--primary); margin: 30px 0; font-style: italic; text-align: center; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 20px 0; }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            #game-view { flex-direction: column; border: none; }
+            .side-bar { width: 100%; height: auto; padding: 15px; border-right: none; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            .info-block { border-bottom: none; margin-bottom: 0; }
+            .action-grid { grid-column: 1 / -1; }
+            #event-log { padding: 20px; }
+        }
+        
+        /* Toast */
+        #toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(60, 50, 40, 0.9); color: #fff; padding: 10px 20px; border-radius: 4px; z-index: 5000; opacity: 0; transition: 0.3s; pointer-events: none; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        #toast.show { opacity: 1; top: 60px; }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部栏 -->
+    <div id="top-bar">
+        <div class="icon-btn" onclick="toggleAudio()">
+            <span id="audio-icon">🔇</span>
+        </div>
+        <div class="icon-btn" onclick="toggleSettings()">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">检测中</span>
+            <span>⚙️</span>
+        </div>
+    </div>
+
+    <div id="toast">提示信息</div>
+
+    <!-- 设置面板 -->
+    <div id="p-settings" class="full-panel hidden" style="z-index: 3000;">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">AI 配置</h2>
+            <input type="text" id="api-url" placeholder="API URL" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; background:#fdfcf8; font-family:inherit;">
+            <input type="password" id="api-key" placeholder="API Key" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; background:#fdfcf8; font-family:inherit;">
+            <input type="text" id="api-model" placeholder="Model Name" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ccc; background:#fdfcf8; font-family:inherit;">
+            <div style="display:flex; gap:10px;">
+                <button class="btn-retro" style="flex:1;" onclick="testConnection()">测试连接</button>
+                <button class="btn-retro" style="flex:1;" onclick="saveSettings()">保存</button>
+                <button class="btn-retro" style="flex:1;" onclick="toggleSettings()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. 天赋选择 -->
+    <div id="p-traits" class="full-panel">
+        <h1 style="color:var(--primary); margin-bottom:10px; font-size: 36px;">浮生若梦</h1>
+        <p id="trait-loading-text" style="color:#666; margin-bottom:30px; font-style:italic;">命运的骰子已经掷下...</p>
+        <div id="traits-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; width: 100%; max-width: 800px;"></div>
+        <button id="btn-to-stats" class="btn-retro hidden" style="margin-top: 40px; padding: 12px 40px;" onclick="goStats()">以此入世</button>
+    </div>
+
+    <!-- 2. 属性分配 -->
+    <div id="p-stats" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="text-align: center; color:var(--primary)">先天属性 (0-100)</h2>
+            <div style="text-align: center; margin-bottom: 30px;">
+                可用点数：<b id="pts-rem" style="color:var(--accent); font-size: 28px;">--</b>
+                <div style="font-size:12px; color:#999; margin-top:5px;">(随机范围: 20-80)</div>
+            </div>
+            
+            <div id="sliders-area"></div>
+
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <button class="btn-retro" style="flex:1;" onclick="autoAllocate()">🎲 听天由命</button>
+                <button class="btn-retro" style="flex:1;" onclick="startGame()">降临人间</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 游戏主界面 -->
+    <div id="game-view" class="hidden">
+        <div class="side-bar">
+            <div class="info-block">
+                <div class="info-row">
+                    <span>性别</span><span class="info-val" id="disp-gender">?</span>
+                </div>
+                <div class="info-row">
+                    <span>学历</span><span class="info-val" id="disp-edu">未入学</span>
+                </div>
+                <div class="info-row">
+                    <span>职业</span><span class="info-val" id="disp-job">无业</span>
+                </div>
+                <div class="info-row" style="margin-top:15px; color:var(--danger);">
+                    <span>资产</span><span class="info-val" id="money-txt">￥0</span>
+                </div>
+            </div>
+            
+            <div id="stat-bars" style="width: 100%;"></div>
+
+            <div class="action-grid">
+                <button class="btn-retro action-btn" onclick="openModal('p-relations')">👥 关系</button>
+                <button class="btn-retro action-btn" onclick="openModal('p-shop')">🏪 商店</button>
+                <button class="btn-retro action-btn" onclick="openModal('p-pets')">🐾 宠物</button>
+            </div>
+        </div>
+        
+        <div class="log-area">
+            <div id="choice-overlay" style="position: absolute; inset: 0; background: rgba(245,242,233,0.98); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+                <h2 id="choice-title" style="margin-bottom: 30px; color: var(--primary); text-align:center;"></h2>
+                <div id="choice-btns" style="width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px;"></div>
+            </div>
+            
+            <div id="event-log"></div>
+            
+            <div style="padding: 20px; border-top: 1px solid var(--border); background: var(--panel); text-align: center;">
+                <button id="next-btn" class="btn-retro" style="width: 100%; max-width: 300px; padding: 12px;" onclick="tick()">推进岁月</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：关系 -->
+    <div id="p-relations" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">人际关系</h2>
+            <div id="npc-list"></div>
+            <button class="btn-retro" style="width:100%; margin-top:20px;" onclick="closeModal('p-relations')">返回</button>
+        </div>
+    </div>
+
+    <!-- 模态框：商店 -->
+    <div id="p-shop" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">时光商店</h2>
+            <div id="shop-list"></div>
+            <button class="btn-retro" style="width:100%; margin-top:20px;" onclick="closeModal('p-shop')">返回</button>
+        </div>
+    </div>
+
+    <!-- 模态框：宠物 -->
+    <div id="p-pets" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">我的宠物</h2>
+            <div style="text-align:center; color:#666; font-size:12px; margin-bottom:10px;">(每年仅限玩耍1次)</div>
+            <div id="pet-list"></div>
+            <button class="btn-retro" style="width:100%; margin-top:20px;" onclick="closeModal('p-pets')">返回</button>
+        </div>
+    </div>
+
+    <!-- 4. 结局 -->
+    <div id="p-death" class="full-panel hidden">
+        <div style="font-size: 40px; color: var(--danger); margin-bottom:20px; font-family: 'KaiTi';">尘埃落定</div>
+        <div id="final-rank" style="font-size: 20px; color:var(--primary); margin-bottom: 20px; font-weight:bold;"></div>
+        
+        <div class="epitaph" id="final-epitaph"></div>
+        <div class="death-summary" id="final-summary">正在生成人生走马灯...</div>
+        
+        <button class="btn-retro" onclick="location.reload()">再入轮回</button>
+    </div>
+
+<script>
+    // --- 音效系统 ---
+    // 使用 Base64 编码的短音效，确保无网络也能播放
+    const SFX = {
+        click: new Audio("data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="), // 占位，实际使用时会替换为真实短音
+        hover: new Audio("data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=")  // 占位
+    };
+    // 简单的合成音效生成器 (为了不依赖外部文件)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTone(freq, type, duration) {
+        if(!audioEnabled) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + duration);
+    }
+    
+    let audioEnabled = false;
+    let bgm = new Audio("https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=relaxing-piano-music-24886.mp3"); 
+    bgm.loop = true;
+    bgm.volume = 0.3;
+
+    function toggleAudio() {
+        audioEnabled = !audioEnabled;
+        document.getElementById('audio-icon').innerText = audioEnabled ? "🔊" : "🔇";
+        if(audioEnabled) {
+            audioCtx.resume();
+            bgm.play().catch(e => console.log("BGM Autoplay blocked"));
+        } else {
+            bgm.pause();
+        }
+    }
+
+    // 全局添加按钮音效
+    document.addEventListener('click', (e) => {
+        if(e.target.classList.contains('btn-retro') || e.target.classList.contains('slider-btn')) {
+            playTone(400, 'sine', 0.1); // 模拟点击音
+        }
+    });
+    document.addEventListener('mouseover', (e) => {
+        if(e.target.classList.contains('btn-retro')) {
+            playTone(200, 'triangle', 0.05); // 模拟悬停音
+        }
+    });
+
+    // --- 配置 ---
+    const DEFAULT_CONFIG = { url: "https://api.deepseek.com/", key: "sk-816dfd777d094288b4c277415549a27d", model: "deepseek-chat" };
+    let config = JSON.parse(localStorage.getItem('ai_life_config')) || DEFAULT_CONFIG;
+    let useAI = false;
+
+    // --- 游戏状态 ---
+    let gs = { 
+        age: -1, 
+        gender: "未知",
+        money: 0, 
+        wealth: 0, intel: 0, health: 0, charisma: 0, happy: 50, 
+        traits: [], 
+        job: "无业", edu: "未入学",
+        history: [],
+        npcs: [], // {id, name, rel, val, gender}
+        pets: [],  // {name, type, val}
+        flags: { petPlayed: false } 
+    };
+    
+    let TOTAL_POINTS = 50; 
+    let allocated = { wealth:0, intel:0, health:0, charisma:0 }; 
+
+    // --- 初始化 ---
+    window.onload = () => {
+        document.getElementById('api-url').value = config.url;
+        document.getElementById('api-key').value = config.key;
+        document.getElementById('api-model').value = config.model;
+        if(config.key) testConnection(true);
+        else { updateStatusUI('none'); initTraits(); }
+    };
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    function toggleSettings() { document.getElementById('p-settings').classList.toggle('hidden'); }
+    function openModal(id) { 
+        renderModalContent(id);
+        document.getElementById(id).classList.remove('hidden'); 
+    }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    
+    function saveSettings() {
+        config.url = document.getElementById('api-url').value.replace(/\/$/, "");
+        config.key = document.getElementById('api-key').value;
+        config.model = document.getElementById('api-model').value;
+        localStorage.setItem('ai_life_config', JSON.stringify(config));
+        location.reload();
+    }
+
+    async function testConnection(silent = false) {
+        if(!silent) showToast("连接中...");
+        try {
+            const res = await fetch(`${config.url}/chat/completions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
+                body: JSON.stringify({ model: config.model, messages: [{ role: "user", content: "你好" }], max_tokens: 5 })
+            });
+            if (res.ok) {
+                updateStatusUI('success');
+                if(!silent) showToast("✅ 连接成功");
+                if(document.getElementById('traits-list').children.length === 0) initTraits();
+            } else throw new Error();
+        } catch (e) {
+            updateStatusUI('error');
+            if(!silent) showToast("❌ 连接失败");
+            initTraits(); 
+        }
+    }
+
+    function updateStatusUI(status) {
+        const dot = document.getElementById('status-dot');
+        const txt = document.getElementById('status-text');
+        dot.className = 'status-dot ' + (status === 'success' ? 'online' : (status === 'error' ? 'offline' : ''));
+        txt.innerText = status === 'success' ? "AI 在线" : "本地模式";
+        useAI = (status === 'success');
+    }
+
+    // --- 1. 天赋系统 ---
+    async function initTraits() {
+        TOTAL_POINTS = Math.floor(Math.random() * (80 - 20 + 1)) + 20;
+
+        const pool = document.getElementById('traits-list');
+        const loading = document.getElementById('trait-loading-text');
+        pool.innerHTML = '';
+        
+        let traits = [
+            { id:1, n:"富二代", d:"家境+20，初始资金+100万", e:{wealth:20, money:1000000} },
+            { id:2, n:"神童", d:"智力+25，学习效率极高", e:{intel:25} },
+            { id:3, n:"万人迷", d:"魅力+25，容易获得好感", e:{charisma:25} },
+            { id:4, n:"铁人", d:"体质+30，极难生病", e:{health:30} },
+            { id:5, n:"普通人", d:"全属性+5，平平淡淡才是真", e:{wealth:5, intel:5, health:5, charisma:5} },
+            { id:6, n:"天煞孤星", d:"智力+30，但心情上限降低", e:{intel:30, happy:-10} }
+        ];
+
+        if (useAI) {
+            loading.classList.remove('hidden');
+            const prompt = `生成6个有趣的人生重开模拟器天赋，必须使用中文。
+            返回JSON格式: {"traits":[{"n":"天赋名","d":"描述","e":{"wealth":10,"intel":5...}}]}. 
+            属性范围5-30。`;
+            const data = await callAI("你是一个游戏数据生成器，只返回纯JSON，不要包含Markdown标记。", prompt);
+            if(data && data.traits) traits = data.traits;
+        }
+        
+        loading.classList.add('hidden');
+
+        traits.forEach((t, i) => {
+            t.id = i;
+            const div = document.createElement('div');
+            div.className = 'trait-item';
+            div.style.cssText = "background:var(--panel); border:1px solid var(--border); padding:15px; cursor:pointer; text-align:center; transition:0.2s; border-radius:4px;";
+            div.innerHTML = `<b>${t.n}</b><br><small style="color:#666">${t.d}</small>`;
+            div.onmouseover = () => div.style.borderColor = 'var(--accent)';
+            div.onmouseout = () => { if(!gs.traits.includes(t)) div.style.borderColor = 'var(--border)'; };
+            div.onclick = () => {
+                if(gs.traits.some(x=>x.id===t.id)) {
+                    div.style.borderColor = 'var(--border)'; div.style.background = 'var(--panel)';
+                    gs.traits = gs.traits.filter(x=>x.id!==t.id);
+                } else if(gs.traits.length < 3) {
+                    div.style.borderColor = 'var(--accent)'; div.style.background = '#efebe0';
+                    gs.traits.push(t);
+                }
+                document.getElementById('btn-to-stats').classList.toggle('hidden', gs.traits.length < 3);
+            };
+            pool.appendChild(div);
+        });
+    }
+
+    // --- 2. 属性分配 ---
+    function goStats() {
+        document.getElementById('p-traits').classList.add('hidden');
+        document.getElementById('p-stats').classList.remove('hidden');
+        
+        gs.traits.forEach(t => {
+            for(let k in t.e) {
+                if(k==='money') gs.money += t.e[k];
+                else if(gs.hasOwnProperty(k)) gs[k] += t.e[k];
+            }
+        });
+
+        renderSliders();
+    }
+
+    function renderSliders() {
+        const area = document.getElementById('sliders-area');
+        area.innerHTML = '';
+        const names = { wealth:"家境", intel:"智力", health:"体质", charisma:"魅力" };
+        
+        let used = Object.values(allocated).reduce((a,b)=>a+b, 0);
+        let rem = TOTAL_POINTS - used;
+        document.getElementById('pts-rem').innerText = rem;
+
+        Object.keys(names).forEach(k => {
+            const base = gs[k]; 
+            const added = allocated[k]; 
+            const total = base + added;
+            
+            const div = document.createElement('div');
+            div.className = 'slider-row';
+            div.innerHTML = `
+                <span class="slider-label">${names[k]}</span>
+                <button class="slider-btn" onclick="adjustVal('${k}', -1)">-</button>
+                <input type="range" class="slider-input" id="slider-${k}" min="0" max="100" value="${total}" 
+                    oninput="handleDrag('${k}', this)">
+                <button class="slider-btn" onclick="adjustVal('${k}', 1)">+</button>
+                <span class="slider-val" id="val-${k}">${total}</span>
+            `;
+            area.appendChild(div);
+            updateSliderVisual(k, total);
+        });
+    }
+
+    function updateSliderVisual(key, val) {
+        const el = document.getElementById(`slider-${key}`);
+        const percent = val + '%';
+        el.style.background = `linear-gradient(to right, var(--accent) ${percent}, #e0ddd3 ${percent})`;
+    }
+
+    function adjustVal(key, delta) {
+        const base = gs[key];
+        const currentTotal = base + allocated[key];
+        const el = document.getElementById(`slider-${key}`);
+        el.value = currentTotal + delta;
+        handleDrag(key, el);
+    }
+
+    function handleDrag(key, el) {
+        const baseVal = gs[key];
+        let newVal = parseInt(el.value);
+        
+        if (newVal < baseVal) newVal = baseVal;
+        
+        let otherUsed = 0;
+        for(let k in allocated) {
+            if(k !== key) otherUsed += allocated[k];
+        }
+        
+        let maxAllowed = baseVal + (TOTAL_POINTS - otherUsed);
+        
+        if (newVal > maxAllowed) {
+            newVal = maxAllowed;
+        }
+
+        el.value = newVal;
+        allocated[key] = newVal - baseVal;
+        document.getElementById(`val-${key}`).innerText = newVal;
+        updateSliderVisual(key, newVal);
+        
+        let totalUsed = otherUsed + allocated[key];
+        document.getElementById('pts-rem').innerText = TOTAL_POINTS - totalUsed;
+    }
+
+    function autoAllocate() {
+        ["wealth", "intel", "health", "charisma"].forEach(k => allocated[k] = 0);
+        let pts = TOTAL_POINTS;
+        const keys = ["wealth", "intel", "health", "charisma"];
+        
+        for(let i=0; i<keys.length-1; i++) {
+            let give = Math.floor(Math.random() * (pts / 2)); 
+            allocated[keys[i]] = give;
+            pts -= give;
+        }
+        allocated[keys[keys.length-1]] = pts;
+        renderSliders();
+    }
+
+    function startGame() {
+        if(Object.values(allocated).reduce((a,b)=>a+b,0) < TOTAL_POINTS) {
+            return showToast("请分配完所有点数");
+        }
+        for(let k in allocated) gs[k] += allocated[k];
+        
+        gs.gender = Math.random() > 0.5 ? "男" : "女";
+        
+        gs.npcs.push({ id: 'dad', name: '父亲', rel: 'parent', val: 50 });
+        gs.npcs.push({ id: 'mom', name: '母亲', rel: 'parent', val: 50 });
+
+        document.getElementById('p-stats').classList.add('hidden');
+        document.getElementById('game-view').classList.remove('hidden');
+        
+        // 尝试播放音乐（如果用户已交互）
+        if(audioEnabled) bgm.play().catch(()=>{});
+
+        updateUI();
+        tick(); 
+    }
+
+    // --- 3. 游戏核心循环 ---
+    let isProcessing = false;
+
+    async function tick() {
+        if (isProcessing) return;
+        isProcessing = true;
+        const btn = document.getElementById('next-btn');
+        btn.disabled = true;
+        btn.innerText = useAI ? "命运推演中..." : "计算中...";
+
+        gs.age++;
+        gs.flags.petPlayed = false; 
+        
+        if(gs.age > 50) gs.health -= 2;
+        if(gs.money < 0) gs.happy -= 5;
+        if(gs.happy < 0) gs.health -= 5;
+
+        if(gs.health <= 0) { die(); return; }
+
+        if (useAI) await aiTurn();
+        else simpleTurn();
+
+        updateUI();
+        btn.disabled = false;
+        btn.innerText = "推进岁月";
+        isProcessing = false;
+    }
+
+    async function aiTurn() {
+        const historyStr = gs.history.slice(-3).join("; ");
+        
+        let fateGuard = "";
+        if (gs.wealth > 60) fateGuard += "【家境优渥】";
+        if (gs.intel > 60) fateGuard += "【天资聪颖】";
+        if (gs.charisma > 70 && gs.age >= 16) fateGuard += "【魅力四射】本年度有概率触发NPC主动追求事件。";
+
+        let specialInstruction = "";
+        if (gs.age === 0) specialInstruction = `玩家刚出生。性别：${gs.gender}。${fateGuard} 请一句话描述出生环境。`;
+        else if (gs.age === 18) specialInstruction = `玩家18岁。${fateGuard} 必须触发【高考】或【步入社会】抉择。返回 type='choice'。`;
+        else if (gs.age === 22) specialInstruction = `玩家22岁。${fateGuard} 必须触发【求职】、【深造】或【创业】抉择。返回 type='choice'。`;
+        else if (gs.age >= 16 && gs.age <= 35) specialInstruction = `青年阶段。${fateGuard} 随机生成：职场、创业、恋爱追求(生成new_npc)、社会诱惑等事件。`;
+
+        const prompt = `
+        角色：极简现实主义人生模拟器。
+        状态：${gs.age}岁, 性别${gs.gender}, 职业"${gs.job}", 学历"${gs.edu}", 存款${gs.money}。
+        属性：家境${gs.wealth}, 智力${gs.intel}, 体质${gs.health}, 魅力${gs.charisma}, 心情${gs.happy}。
+        历史：${historyStr}。
+        指令：${specialInstruction}
+        
+        要求：
+        1. **严禁复述属性**。
+        2. **Show, Don't Tell**。
+        3. **恋爱**：如果生成追求者，请在 new_npc 中返回。
+        4. **格式**：只返回JSON。
+        
+        JSON格式：
+        {
+            "type": "normal" 或 "choice",
+            "text": "简短事件描述（限40字）",
+            "new_job": "新职业名 或 null",
+            "new_edu": "新学历 或 null",
+            "new_npc": { "name": "姓名", "rel": "stranger", "gender": "异性", "desc": "描述" } (可选),
+            "effects": {"money": 0, "happy": 0, "wealth": 0...},
+            "choices": [ {"text":"选项", "result":"结果", "effects":{...}, "new_job": "...", "new_edu": "..."} ]
+        }
+        `;
+
+        const res = await callAI("你是一个极简文字游戏引擎。只返回纯JSON，严禁Markdown。", prompt);
+        
+        if (!res) { simpleTurn(); return; }
+
+        if (res.type === 'choice') {
+            showChoice(res.text, res.choices); 
+        } else {
+            handleEventResult(res);
+        }
+    }
+
+    function handleEventResult(data) {
+        if(data.new_job && data.new_job !== "null" && data.new_job !== "无") gs.job = data.new_job;
+        if(data.new_edu && data.new_edu !== "null" && data.new_edu !== "无") gs.edu = data.new_edu;
+        
+        if(data.new_npc) {
+            data.new_npc.id = 'npc_' + Date.now();
+            data.new_npc.val = 30; 
+            gs.npcs.push(data.new_npc);
+            showToast(`有人注意到了你：${data.new_npc.name}`);
+        }
+
+        applyEffects(data.effects);
+        appendLog(data.text);
+        
+        gs.history.push(`${gs.age}岁: ${data.text}`);
+    }
+
+    function simpleTurn() {
+        let txt = "平淡的一年。";
+        if(gs.age === 0) txt = `你出生了，是个${gs.gender}孩。家境${gs.wealth > 50 ? '殷实' : '普通'}。`;
+        else if(gs.age === 18) {
+            showChoice("你年满18岁，面临人生分岔路口", [
+                {text:"参加高考", result:"你进入了大学。", effects:{intel:5}, new_edu:"本科在读"},
+                {text:"外出打工", result:"你成为了一名工人。", effects:{money:5000}, new_job:"工人", new_edu:"高中"}
+            ]);
+            return;
+        }
+        gs.money += (gs.wealth * 200);
+        appendLog(txt);
+    }
+
+    function applyEffects(eff) {
+        if(!eff) return;
+        for(let k in eff) {
+            if(gs.hasOwnProperty(k)) gs[k] += eff[k];
+        }
+    }
+
+    function appendLog(text) {
+        const log = document.getElementById('event-log');
+        const div = document.createElement('div');
+        div.className = 'year-block';
+        div.innerHTML = `<div class="year-num">${gs.age} 岁</div><div class="year-text">${text}</div>`;
+        log.appendChild(div);
+        setTimeout(() => log.scrollTop = log.scrollHeight, 100);
+    }
+
+    function showChoice(title, choices) {
+        const overlay = document.getElementById('choice-overlay');
+        const btns = document.getElementById('choice-btns');
+        document.getElementById('choice-title').innerText = title;
+        document.getElementById('next-btn').classList.add('hidden');
+        
+        btns.innerHTML = '';
+        overlay.style.display = 'flex';
+        
+        choices.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-retro';
+            btn.style.cssText = "width:100%; padding:12px; text-align:center;";
+            btn.innerText = c.text;
+            btn.onclick = () => {
+                if(c.new_job && c.new_job !== "null") gs.job = c.new_job;
+                if(c.new_edu && c.new_edu !== "null") gs.edu = c.new_edu;
+                applyEffects(c.effects);
+                appendLog(`【抉择】${c.text}：${c.result}`);
+                gs.history.push(`${gs.age}岁 抉择: ${c.text} -> ${c.result}`);
+                
+                overlay.style.display = 'none';
+                document.getElementById('next-btn').classList.remove('hidden');
+                updateUI();
+            };
+            btns.appendChild(btn);
+        });
+    }
+
+    // --- 4. 功能模块 ---
+
+    function renderModalContent(id) {
+        if(id === 'p-relations') renderNPCs();
+        else if(id === 'p-shop') renderShop();
+        else if(id === 'p-pets') renderPets();
+    }
+
+    function renderNPCs() {
+        const list = document.getElementById('npc-list');
+        list.innerHTML = '';
+        if(gs.npcs.length === 0) { list.innerHTML = '<div style="text-align:center;color:#999">暂无重要关系</div>'; return; }
+        
+        gs.npcs.forEach(npc => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            
+            let relText = npc.rel === 'parent' ? '亲人' : (npc.rel==='partner'?'伴侣':'相识');
+            let valText = npc.val < 20 ? '陌生' : (npc.val < 60 ? '熟悉' : (npc.val < 90 ? '亲密' : '至爱'));
+            
+            let actions = `
+                <button class="btn-retro" onclick="interactNPC('${npc.id}', 'chat')">💬</button>
+                <button class="btn-retro" onclick="interactNPC('${npc.id}', 'gift')">🎁</button>
+            `;
+            
+            // 爱情线逻辑
+            if(npc.rel !== 'parent' && npc.rel !== 'partner' && gs.age >= 16) {
+                actions += `<button class="btn-retro btn-love" onclick="pursueNPC('${npc.id}')">💌 表白</button>`;
+            }
+            // 伴侣互动
+            if(npc.rel === 'partner') {
+                actions += `<button class="btn-retro btn-love" onclick="dateNPC('${npc.id}')">🌹 约会</button>`;
+            }
+
+            div.innerHTML = `
+                <div class="list-info">
+                    <div class="item-name">${npc.name} <span class="rel-tag">${relText}</span></div>
+                    <div class="heart-val">❤ ${npc.val} / 100 (${valText})</div>
+                </div>
+                <div class="list-actions">${actions}</div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    async function interactNPC(id, type) {
+        const npc = gs.npcs.find(n => n.id === id);
+        if(type === 'gift') {
+            if(gs.money < 500) return showToast("钱不够买礼物 (￥500)");
+            gs.money -= 500;
+            npc.val = Math.min(100, npc.val + 10); // 上限100
+            showToast(`送了礼物，${npc.name}很开心 (+10好感)`);
+            renderNPCs();
+            updateUI();
+        } else {
+            showToast("聊天中...");
+            const prompt = `玩家正在和${npc.name}聊天。玩家年龄${gs.age}岁。请生成一句${npc.name}对玩家说的话，温馨或有趣，20字以内。`;
+            const res = await callAI("你是一个NPC对话生成器。", prompt);
+            if(res && res.text) {
+                alert(`${npc.name}说：“${res.text}”`);
+                npc.val = Math.min(100, npc.val + 2);
+                renderNPCs();
+            }
+        }
+    }
+
+    function pursueNPC(id) {
+        const npc = gs.npcs.find(n => n.id === id);
+        let chance = (gs.charisma + gs.wealth/2) / 1.5 + (npc.val / 5);
+        let roll = Math.random() * 100;
+        
+        if (roll < chance) {
+            npc.rel = 'partner';
+            npc.val = Math.min(100, npc.val + 30);
+            gs.happy += 20;
+            alert(`表白成功！${npc.name}成为了你的伴侣。`);
+            appendLog(`你鼓起勇气向${npc.name}表白，对方欣然接受了。`);
+        } else {
+            npc.val = Math.max(0, npc.val - 10);
+            gs.happy -= 10;
+            alert(`表白失败... ${npc.name}觉得你们不合适。`);
+        }
+        renderNPCs();
+        updateUI();
+    }
+
+    function dateNPC(id) {
+        if(gs.money < 1000) return showToast("约会需要资金 (￥1000)");
+        gs.money -= 1000;
+        const npc = gs.npcs.find(n => n.id === id);
+        npc.val = Math.min(100, npc.val + 15);
+        gs.happy += 15;
+        showToast("甜蜜的约会！感情升温。");
+        renderNPCs();
+        updateUI();
+    }
+
+    function renderShop() {
+        const list = document.getElementById('shop-list');
+        list.innerHTML = '';
+        
+        let items = [
+            { name: "糖果", price: 10, eff: {happy:5}, min:0, max:12, desc:"甜甜的" },
+            { name: "玩具车", price: 100, eff: {happy:10}, min:3, max:12, desc:"童年回忆" },
+            { name: "参考书", price: 200, eff: {intel:5}, min:12, max:22, desc:"知识就是力量" },
+            { name: "游戏机", price: 2000, eff: {happy:20}, min:10, max:40, desc:"快乐源泉" },
+            { name: "健身卡", price: 3000, eff: {health:5, charisma:2}, min:18, max:60, desc:"强身健体" },
+            { name: "名牌西装", price: 10000, eff: {charisma:10}, min:20, max:60, desc:"职场利器" },
+            { name: "保健品", price: 5000, eff: {health:5}, min:50, max:100, desc:"延年益寿" },
+            { name: "流浪狗", price: 500, type:'pet', petType:'dog', min:5, max:100, desc:"忠诚的伙伴" },
+            { name: "小猫咪", price: 800, type:'pet', petType:'cat', min:5, max:100, desc:"高冷的室友" }
+        ];
+
+        items = items.filter(i => gs.age >= i.min && gs.age <= i.max);
+
+        if(items.length === 0) { list.innerHTML = '<div style="text-align:center;color:#999">暂无商品</div>'; return; }
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.innerHTML = `
+                <div class="list-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-desc">${item.desc}</div>
+                </div>
+                <div class="list-actions">
+                    <button class="btn-retro" onclick='buyItem(${JSON.stringify(item)})'>￥${item.price}</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function buyItem(item) {
+        if(gs.money < item.price) return showToast("余额不足");
+        gs.money -= item.price;
+        
+        if(item.type === 'pet') {
+            gs.pets.push({ name: item.name, type: item.petType, val: 50 });
+            showToast(`你带回了${item.name}！`);
+        } else {
+            applyEffects(item.eff);
+            showToast(`购买成功！`);
+        }
+        updateUI();
+        renderShop();
+    }
+
+    function renderPets() {
+        const list = document.getElementById('pet-list');
+        list.innerHTML = '';
+        if(gs.pets.length === 0) { list.innerHTML = '<div style="text-align:center;color:#999">你还没有宠物，去商店看看吧</div>'; return; }
+        
+        gs.pets.forEach((pet, idx) => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            
+            let btnHtml = gs.flags.petPlayed 
+                ? `<button class="btn-retro" disabled>已玩耍</button>`
+                : `<button class="btn-retro" onclick="playPet(${idx})">🎾 玩耍</button>`;
+
+            div.innerHTML = `
+                <div class="list-info">
+                    <div class="item-name">${pet.name}</div>
+                    <div class="heart-val">亲密: ${pet.val}</div>
+                </div>
+                <div class="list-actions">${btnHtml}</div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function playPet(idx) {
+        if(gs.flags.petPlayed) return showToast("今天已经玩过了，休息一下吧");
+        
+        gs.pets[idx].val += 5;
+        gs.happy += 5;
+        gs.flags.petPlayed = true; 
+        
+        showToast("玩得很开心！心情+5");
+        renderPets();
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('money-txt').innerText = `￥${Math.floor(gs.money).toLocaleString()}`;
+        document.getElementById('disp-job').innerText = gs.job;
+        document.getElementById('disp-edu').innerText = gs.edu;
+        document.getElementById('disp-gender').innerText = gs.gender;
+
+        const renderBar = (key, name, colorClass) => {
+            let val = Math.max(0, Math.min(100, gs[key]));
+            const barId = `fill-${key}`;
+            let bar = document.getElementById(barId);
+            
+            if(!bar) {
+                const container = document.getElementById('stat-bars');
+                const div = document.createElement('div');
+                div.className = 'stat-group';
+                div.innerHTML = `<div class="stat-label"><span>${name}</span><span id="num-${key}"></span></div><div class="stat-progress"><div id="${barId}" class="stat-fill ${colorClass||''}"></div></div>`;
+                container.appendChild(div);
+                bar = document.getElementById(barId);
+            }
+            
+            document.getElementById(`num-${key}`).innerText = val;
+            bar.style.width = val + "%";
+            
+            if(!colorClass) {
+                if(val < 20) bar.style.background = "var(--danger)";
+                else if(val > 80) bar.style.background = "var(--success)";
+                else bar.style.background = "var(--primary)";
+            }
+        };
+
+        renderBar("wealth", "家境");
+        renderBar("intel", "智力");
+        renderBar("health", "体质");
+        renderBar("charisma", "魅力");
+        renderBar("happy", "心情");
+    }
+
+    async function callAI(sys, user) {
+        if (!useAI) return null;
+        try {
+            const res = await fetch(`${config.url}/chat/completions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
+                body: JSON.stringify({
+                    model: config.model,
+                    messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+                    temperature: 0.85,
+                    response_format: { type: "json_object" }
+                })
+            });
+            const data = await res.json();
+            let content = data.choices[0].message.content;
+            content = content.replace(/```json/g, '').replace(/```/g, '');
+            return JSON.parse(content);
+        } catch (e) {
+            console.error(e);
+            showToast("AI 响应错误");
+            return null;
+        }
+    }
+
+    async function die() {
+        document.getElementById('game-view').classList.add('hidden');
+        document.getElementById('p-death').classList.remove('hidden');
+        document.getElementById('final-rank').innerText = `${gs.age}岁 · ${gs.gender} · ${gs.job}`;
+        
+        if(useAI) {
+            const prompt = `
+            玩家死亡。请阅读以下人生履历：${JSON.stringify(gs.history)}。
+            请生成：
+            1. epitaph: 一句简短、有诗意、符合一生的墓志铭（20字内）。
+            2. summary: 人生走马灯总结，包含【最高成就】、【最大遗憾】和【最终评价】，分点描述，情感真挚。
+            返回JSON: {"epitaph": "...", "summary": "..."}
+            `;
+            const res = await callAI("你是一个传记作家。", prompt);
+            if(res) {
+                document.getElementById('final-epitaph').innerText = res.epitaph;
+                document.getElementById('final-summary').innerHTML = res.summary.replace(/\n/g, '<br>');
+            }
+        } else {
+            document.getElementById('final-epitaph').innerText = "人生如梦，一尊还酹江月。";
+            document.getElementById('final-summary').innerText = "（连接AI以查看人生走马灯）";
+        }
+    }
+</script>
+</body>
+</html>
