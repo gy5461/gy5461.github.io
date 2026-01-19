@@ -42,9 +42,9 @@
     <link href="https://gy5461.github.io/2026/01/15/%E6%B5%AE%E7%94%9F%E8%8B%A5%E6%A2%A6/"/>
     <id>https://gy5461.github.io/2026/01/15/%E6%B5%AE%E7%94%9F%E8%8B%A5%E6%A2%A6/</id>
     <published>2026-01-15T15:16:47.018Z</published>
-    <updated>2026-01-19T16:15:45.855Z</updated>
+    <updated>2026-01-19T16:21:50.065Z</updated>
     
-    <content type="html"><![CDATA[<iframe     src="/Game/LifeSimulator_LTS.html"     style="        width: 100%;         height: 700px; /* 电脑端默认高度，够高够大气 */        max-height: 90vh; /* 移动端限制：不超过屏幕高度的90%，保证按钮不掉出去 */        border: none;         display: block;         margin: 0 auto;"     frameborder="0"     scrolling="no"     allow="fullscreen"></iframe>]]></content>
+    <content type="html"><![CDATA[<iframe     src="/Game/LifeSimulator_LTS.html"     style="        width: 100%;         height: 700px;         max-height: 90vh;         border: none;         display: block;         margin: 0 auto;"     frameborder="0"     scrolling="no"     allow="fullscreen; autoplay"></iframe>]]></content>
     
     
       
@@ -53,8 +53,9 @@
     src=&quot;/Game/LifeSimulator_LTS.html&quot; 
     style=&quot;
         width: 100%; 
-        height: 700px; /* 电脑端默认高度，够高够大气 */
-        max-he</summary>
+        height: 700px; 
+        max-height: 90vh; 
+      </summary>
       
     
     

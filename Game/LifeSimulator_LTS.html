@@ -110,127 +110,161 @@
             top: 22%; /* 稍微有个下沉动画 */
         }
 
-        /* --- 移动端最终打磨版 (PC风格回归 + 防遮挡) --- */
+        /* --- 移动端终极修复版 (防遮挡 + 弹窗适配) --- */
         @media (max-width: 768px) {
-            
-            /* 1. 全局容器：利用 padding 把内容挤在中间，防止头尾遮挡 */
+
+            /* 1. 全局布局：强制留出顶部和底部空间 */
             #game-view {
                 display: flex;
                 flex-direction: column;
                 width: 100%;
-                min-height: 100vh;
+                height: 100%;
                 box-sizing: border-box;
                 
-                /* 【核心】上下留白，给固定栏腾位置 */
-                /* 顶部留出 60px (防止顶部栏遮挡) */
-                padding-top: 60px; 
-                /* 底部留出 100px (防止底部按钮遮挡) */
-                padding-bottom: 100px; 
+                /* 【核心修复】顶部留出 70px，彻底解决顶部栏遮挡问题 */
+                padding-top: 70px; 
+                /* 底部留出 90px，防止按钮遮挡日志 */
+                padding-bottom: 90px; 
             }
 
-            /* 2. 顶部栏：固定在顶端，左对齐 */
+            /* 2. 顶部栏：固定在顶部，左对齐 */
             #top-bar {
-                position: fixed; /* 【关键】钉死在顶部 */
+                position: fixed;
                 top: 0;
                 left: 0;
                 width: 100%;
-                height: 50px; /* 固定高度 */
-                background: var(--bg); /* 跟随主题背景 */
+                height: 50px;
+                background: var(--bg);
                 border-bottom: 1px solid var(--border);
-                z-index: 1000; /* 保证在最上层 */
+                z-index: 2000; /* 层级极高 */
                 
                 display: flex;
                 align-items: center;
-                justify-content: flex-start; /* 【关键】左对齐 */
-                padding: 0 15px; /* 左右留点缝隙 */
-                box-sizing: border-box;
-                gap: 10px; /* 按钮之间的间距 */
+                justify-content: flex-start; /* 左对齐 */
+                padding: 0 15px;
+                gap: 10px;
             }
 
-            /* 顶部按钮样式：回归 PC 风格 */
+            /* 顶部按钮样式 */
             .icon-btn {
+                height: 32px;
+                padding: 0 10px;
+                background: var(--btn-bg, #f0f0f0);
+                border: 1px solid var(--border, #ccc);
+                border-radius: 4px;
+                font-size: 13px;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                height: 32px; /* 统一高度 */
-                padding: 0 12px;
-                margin: 0; /* 由 gap 控制间距，去掉 margin */
-                
-                /* 使用主题变量，保持和 PC 一致 */
-                background: var(--btn-bg, #f0f0f0); 
-                border: 1px solid var(--border, #ccc);
-                color: var(--text, #333);
-                border-radius: 4px; /* 小圆角，不是胶囊 */
-                font-size: 14px;
             }
-
-            /* 确保文字显示 */
-            .icon-btn span {
-                display: inline-block !important;
-                margin-left: 5px;
-            }
-            
-            /* 隐藏不需要的元素 (如状态文字) */
+            .icon-btn span { display: inline-block !important; margin-left: 4px; }
             #status-text { display: none; }
 
-            /* 3. 属性栏 (家境等) */
+            /* 【新增】移动端隐藏全屏按钮 (因为iframe内通常无法触发全屏) */
+            #fullscreen-btn, .fa-expand {
+                display: none !important;
+            }
+
+            /* 3. 属性栏 */
             .side-bar {
+                flex-shrink: 0; /* 禁止压缩 */
                 width: 100%;
                 padding: 10px 15px;
-                border-right: none;
                 border-bottom: 1px solid var(--border);
-                background: var(--bg);
-                
                 display: grid;
-                grid-template-columns: 1fr 1fr; /* 两列显示 */
-                gap: 10px;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                background: var(--bg);
             }
-            .info-block { margin: 0; border: none; padding: 0; }
+            .info-block { margin: 0; border: none; padding: 0; font-size: 14px; }
 
             /* 4. 日志区 */
             #event-log {
+                flex-grow: 1;
+                overflow-y: auto; /* 允许内部滚动 */
                 padding: 15px;
                 font-size: 15px;
                 line-height: 1.6;
+                -webkit-overflow-scrolling: touch;
             }
 
-            /* 5. 底部按钮区：固定在底端 */
+            /* 5. 底部按钮区 */
             #controls {
-                position: fixed; /* 【关键】钉死在底部 */
+                position: fixed;
                 bottom: 0;
                 left: 0;
                 width: 100%;
                 background: var(--bg);
                 border-top: 1px solid var(--border);
-                
                 padding: 15px 20px;
-                /* 适配 iPhone 底部黑条 */
                 padding-bottom: calc(20px + env(safe-area-inset-bottom));
-                z-index: 1000;
-                
+                z-index: 2000;
                 display: flex;
-                justify-content: center; /* 居中 */
+                justify-content: center;
             }
 
-            /* 底部按钮样式：回归 PC 风格 */
             #next-btn {
                 width: 100%;
-                max-width: 400px; /* 稍微限制一下最大宽度 */
+                max-width: 400px;
                 padding: 12px 0;
                 font-size: 16px;
-                cursor: pointer;
-                
-                /* 【关键】去掉花里胡哨，回归朴素 */
-                background: var(--btn-bg, #fff); /* 跟随主题 */
+                background: var(--btn-bg, #fff);
                 color: var(--text, #333);
                 border: 1px solid var(--border, #ccc);
-                border-radius: 4px; /* PC 风格的小圆角 */
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 极淡的阴影 */
+                border-radius: 4px;
             }
+
+            /* =========================================
+            6. 【核心修复】弹窗与天赋选择适配
+            ========================================= */
             
-            /* 点击时的反馈 */
-            #next-btn:active {
-                background: var(--border); /* 点击变深一点点 */
+            /* 强制弹窗容器靠上，而不是居中 */
+            #choice-modal {
+                display: flex !important;
+                align-items: flex-start !important; /* 靠顶部对齐 */
+                padding-top: 80px !important; /* 避开顶部栏 */
+                background: rgba(0,0,0,0.6); /* 背景遮罩 */
+                z-index: 3000; /* 确保在最最上层 */
+            }
+
+            /* 弹窗内容框 */
+            #choice-content {
+                width: 90%; /* 宽度占满 */
+                max-height: 75vh; /* 限制高度，防止超出一屏 */
+                overflow-y: auto; /* 内容多了可以滚 */
+                margin: 0 auto;
+                padding: 15px;
+                border-radius: 8px;
+                background: var(--bg);
+            }
+
+            /* 标题栏 */
+            #choice-content h3 {
+                margin-top: 0;
+                font-size: 1.2rem;
+                text-align: center;
+            }
+
+            /* 选项按钮/天赋块：变小、变紧凑 */
+            .choice-btn, .talent-item {
+                width: 100%;
+                margin: 8px 0;
+                padding: 10px; /* 减小内边距 */
+                font-size: 14px; /* 减小字号 */
+                text-align: left;
+                border: 1px solid var(--border);
+                border-radius: 4px;
+                background: var(--btn-bg);
+                
+                /* 如果是天赋选择，尝试让它们并排 (可选) */
+                /* display: flex; align-items: center; */
+            }
+
+            /* 针对天赋列表容器 (如果有特定class) */
+            #talent-list {
+                display: grid;
+                grid-template-columns: 1fr; /* 手机上一行一个，防止挤压 */
+                gap: 8px;
             }
         }
     </style>
