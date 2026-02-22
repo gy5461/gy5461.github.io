@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 人生模拟器：浮生若梦 (生活版)</title>
+    <style>
+        :root { --bg: #f5f2e9; --panel: #fdfcf8; --text: #2c2c2c; --primary: #5d5043; --border: #dcd3c1; --accent: #c0a46d; --success: #6b8e23; --danger: #a0522d; --love: #e056fd; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: "Slabo 27px", "STKaiti", "KaiTi", serif; color: var(--text); overflow: hidden; user-select: none; }
+        
+        /* 复古组件 */
+        .btn-retro { padding: 8px 16px; border: 1px solid var(--primary); background: var(--panel); color: var(--primary); font-size: 15px; cursor: pointer; transition: 0.1s; box-shadow: 2px 2px 0 var(--border); border-radius: 2px; font-family: inherit; font-weight: bold; position: relative; overflow: hidden; }
+        .btn-retro:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--border); }
+        .btn-retro:disabled { opacity: 0.6; cursor: not-allowed; background: #eee; color: #999; box-shadow: none; border-color: #ccc; }
+        .btn-love { border-color: var(--love); color: var(--love); }
+        
+        .hidden { display: none !important; }
+        .full-panel { position: fixed; inset: 0; background: rgba(245, 242, 233, 0.98); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .paper-card { background: var(--panel); border: 1px solid var(--border); box-shadow: 6px 6px 0 rgba(0,0,0,0.05); padding: 25px; max-width: 100%; width: 550px; position: relative; max-height: 90vh; overflow-y: auto; }
+
+        /* 顶部栏 */
+        #top-bar { position: fixed; top: 15px; right: 15px; z-index: 2000; display: flex; gap: 10px; }
+        .icon-btn { background: rgba(253, 252, 248, 0.9); padding: 6px 12px; border: 1px solid var(--border); cursor: pointer; font-size: 14px; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+        .status-dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
+
+        /* 滑块样式 */
+        .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .slider-label { width: 45px; font-weight: bold; font-size: 16px; color: var(--primary); }
+        .slider-btn { width: 28px; height: 28px; border: 1px solid var(--primary); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--primary); font-family: monospace; font-size: 18px; }
+        .slider-input { flex: 1; -webkit-appearance: none; height: 6px; background: #e0ddd3; outline: none; margin: 0 5px; border-radius: 3px; border: 1px solid #ccc; }
+        .slider-input::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--primary); border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; position: relative; z-index: 2; }
+        .slider-val { width: 35px; text-align: right; font-family: monospace; font-size: 18px; font-weight: bold; color: var(--accent); }
+
+        /* 游戏主界面 */
+        #game-view { display: flex; height: 100vh; width: 100vw; max-width: 1200px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+        .side-bar { width: 320px; background: #f2efe4; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+        .log-area { flex: 1; background: var(--bg); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* 侧边栏信息 */
+        .info-block { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px dashed var(--border); }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 15px; }
+        .info-val { font-weight: bold; color: var(--text); }
+
+        /* 功能按钮区 */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .action-btn { padding: 10px 5px; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+
+        /* 状态条 */
+        .stat-group { margin-bottom: 10px; }
+        .stat-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #555; }
+        .stat-progress { height: 8px; background: #e6e2d3; border: 1px solid rgba(0,0,0,0.05); border-radius: 2px; }
+        .stat-fill { height: 100%; background: var(--primary); transition: 0.5s; width: 0%; }
+
+        /* 日志 */
+        #event-log { flex: 1; overflow-y: auto; padding: 30px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .year-block { margin-bottom: 25px; border-left: 3px solid var(--border); padding-left: 18px; animation: fadeIn 0.5s ease; }
+        .year-num { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 6px; font-family: "KaiTi", serif; }
+        .year-text { font-size: 17px; line-height: 1.6; color: #333; text-align: justify; }
+        
+        /* 列表样式 */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .list-info { flex: 1; }
+        .list-actions { display: flex; gap: 5px; }
+        .item-name { font-weight: bold; color: var(--primary); }
+        .heart-val { color: var(--love); font-weight: bold; font-size: 13px; margin-left: 5px; }
+        .rel-tag { font-size: 11px; padding: 2px 4px; border-radius: 3px; background: #eee; color: #666; margin-left: 5px; }
+        .item-desc { font-size: 12px; color: #888; margin-top: 2px; }
+        .item-effect { font-size: 11px; color: var(--success); margin-top: 2px; font-weight: bold; }
+
+        /* 结局样式 (经典版) */
+        .death-summary { text-align: left; background: #fff; padding: 20px; border-radius: 4px; border: 1px solid #eee; margin-bottom: 20px; font-size: 15px; line-height: 1.8; color: #444; max-height: 300px; overflow-y: auto; }
+        .epitaph { font-size: 24px; font-family: "KaiTi"; color: var(--primary); margin: 30px 0; font-style: italic; text-align: center; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; padding: 20px 0; }
+
+        /* 聊天窗口样式 */
+        .chat-input-area { display: flex; gap: 10px; margin-top: 20px; }
+        .chat-input { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-family: inherit; }
+        .chat-bubble { display: inline-block; padding: 8px 12px; border-radius: 8px; max-width: 80%; text-align: left; word-break: break-word; line-height: 1.4; }
+        .chat-msg-user { text-align: right; margin: 10px 0; }
+        .chat-msg-npc { text-align: left; margin: 10px 0; }
+
+        /* ====================
+        1. 修复 Toast (提示气泡)
+        独立于移动端适配，确保它永远在最上层居中
+        ==================== */
+        #toast {
+            position: fixed;
+            top: 20%; /* 距离顶部 20% 的位置，比正中间更符合阅读习惯 */
+            left: 50%;
+            transform: translateX(-50%); /* 水平居中 */
+            background: rgba(0, 0, 0, 0.85); /* 深色背景 */
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 25px; /* 圆角气泡 */
+            z-index: 99999; /* 【关键】层级设为最高，防止被遮挡 */
+            opacity: 0;
+            visibility: hidden; /* 默认不可见，防止误触 */
+            transition: opacity 0.3s, top 0.3s;
+            font-size: 14px;
+            pointer-events: none; /* 鼠标穿透，不挡操作 */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap; /* 防止文字换行 */
+        }
+
+        /* Toast 显示时的状态 (JS会切换这个类) */
+        #toast.show {
+            opacity: 1;
+            visibility: visible;
+            top: 22%; /* 稍微有个下沉动画 */
+        }
+
+        /* ====================
+        CSS 伪全屏模式 (B计划)
+        ==================== */
+        body.fake-fullscreen {
+            overflow: hidden; /* 禁止背景滚动 */
+        }
+
+        body.fake-fullscreen #game-view {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 99999 !important; /* 确保在最最上层 */
+            background: var(--bg, #fff) !important; /* 防止透明 */
+            margin: 0 !important;
+            
+            /* 重新调整内边距，适应全屏状态 */
+            padding-top: 60px !important; 
+            padding-bottom: 80px !important;
+        }
+
+        /* 伪全屏模式下，确保顶部栏和底部栏也在最上层 */
+        body.fake-fullscreen #top-bar,
+        body.fake-fullscreen #controls {
+            position: fixed !important;
+            z-index: 100000 !important; /* 比 game-view 更高 */
+            left: 0 !important;
+            width: 100% !important;
+        }
+
+       /* --- 移动端终极修复版 (防遮挡 + 弹窗适配) --- */
+        @media (max-width: 768px) {
+
+            /* 1. 全局布局：强制留出顶部和底部空间 */
+            #game-view {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                height: 100%;
+                box-sizing: border-box;
+                
+                /* 【核心修复】顶部留出 70px，彻底解决顶部栏遮挡问题 */
+                padding-top: 70px; 
+                /* 底部留出 90px，防止按钮遮挡日志 */
+                padding-bottom: 90px; 
+            }
+
+            /* 2. 顶部栏：固定在顶部，左对齐 */
+            #top-bar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 50px;
+                background: var(--bg);
+                border-bottom: 1px solid var(--border);
+                z-index: 2000; /* 层级极高 */
+                
+                display: flex;
+                align-items: center;
+                justify-content: flex-start; /* 左对齐 */
+                padding: 0 15px;
+                gap: 10px;
+            }
+
+            /* 顶部按钮样式 */
+            .icon-btn {
+                height: 32px;
+                padding: 0 10px;
+                background: var(--btn-bg, #f0f0f0);
+                border: 1px solid var(--border, #ccc);
+                border-radius: 4px;
+                font-size: 13px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .icon-btn span { display: inline-block !important; margin-left: 4px; }
+            #status-text { display: none; }
+
+            /* 【新增】移动端隐藏全屏按钮 (因为iframe内通常无法触发全屏) */
+            #fullscreen-btn, .fa-expand {
+                display: none !important;
+            }
+
+            /* 3. 属性栏 */
+            .side-bar {
+                flex-shrink: 0; /* 禁止压缩 */
+                width: 100%;
+                padding: 10px 15px;
+                border-bottom: 1px solid var(--border);
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                background: var(--bg);
+            }
+            .info-block { margin: 0; border: none; padding: 0; font-size: 14px; }
+
+            /* 4. 日志区 */
+            #event-log {
+                flex-grow: 1;
+                overflow-y: auto; /* 允许内部滚动 */
+                padding: 15px;
+                font-size: 15px;
+                line-height: 1.6;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* 5. 底部按钮区 */
+            #controls {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background: var(--bg);
+                border-top: 1px solid var(--border);
+                padding: 15px 20px;
+                padding-bottom: calc(20px + env(safe-area-inset-bottom));
+                z-index: 2000;
+                display: flex;
+                justify-content: center;
+            }
+
+            #next-btn {
+                width: 100%;
+                max-width: 400px;
+                padding: 12px 0;
+                font-size: 16px;
+                background: var(--btn-bg, #fff);
+                color: var(--text, #333);
+                border: 1px solid var(--border, #ccc);
+                border-radius: 4px;
+            }
+
+            /* =========================================
+            6. 【核心修复】弹窗与天赋选择适配
+            ========================================= */
+            
+            /* 强制弹窗容器靠上，而不是居中 */
+            #choice-modal {
+                display: flex !important;
+                align-items: flex-start !important; /* 靠顶部对齐 */
+                padding-top: 80px !important; /* 避开顶部栏 */
+                background: rgba(0,0,0,0.6); /* 背景遮罩 */
+                z-index: 3000; /* 确保在最最上层 */
+            }
+
+            /* 弹窗内容框 */
+            #choice-content {
+                width: 90%; /* 宽度占满 */
+                max-height: 75vh; /* 限制高度，防止超出一屏 */
+                overflow-y: auto; /* 内容多了可以滚 */
+                margin: 0 auto;
+                padding: 15px;
+                border-radius: 8px;
+                background: var(--bg);
+            }
+
+            /* 标题栏 */
+            #choice-content h3 {
+                margin-top: 0;
+                font-size: 1.2rem;
+                text-align: center;
+            }
+
+            /* 选项按钮/天赋块：变小、变紧凑 */
+            .choice-btn, .talent-item {
+                width: 100%;
+                margin: 8px 0;
+                padding: 10px; /* 减小内边距 */
+                font-size: 14px; /* 减小字号 */
+                text-align: left;
+                border: 1px solid var(--border);
+                border-radius: 4px;
+                background: var(--btn-bg);
+                
+                /* 如果是天赋选择，尝试让它们并排 (可选) */
+                /* display: flex; align-items: center; */
+            }
+
+            /* 针对天赋列表容器 (如果有特定class) */
+            #talent-list {
+                display: grid;
+                grid-template-columns: 1fr; /* 手机上一行一个，防止挤压 */
+                gap: 8px;
+            }
+
+            /* 3. 天赋选项块：极简瘦身版 */
+            .talent-item, .choice-btn {
+                padding: 6px 8px !important; /* 极小的内边距 */
+                margin-bottom: 6px !important; /* 减小间距 */
+                min-height: auto !important; /* 去掉最小高度限制 */
+                
+                display: flex !important;
+                flex-direction: column !important; /* 垂直排列 */
+                justify-content: center !important;
+            }
+
+            /* 天赋名称 */
+            .talent-item .name, .choice-btn .title {
+                font-size: 13px !important; /* 标题变小 */
+                font-weight: bold;
+                margin-bottom: 2px;
+            }
+
+            /* 天赋描述 */
+            .talent-item .desc, .choice-btn .content {
+                font-size: 11px !important; /* 描述文字变得非常小 */
+                color: #666;
+                line-height: 1.3;
+                margin: 0;
+            }
+
+            /* 选中状态 */
+            .talent-item.selected {
+                border-color: #f00 !important;
+                background-color: #fff0f0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部栏 -->
+    <div id="top-bar">
+        <div class="icon-btn" onclick="toggleFullScreen()" style="margin-right: 10px;">
+            <span id="fs-icon">⛶</span>
+        </div>
+        <div class="icon-btn" onclick="confirmRestart()" style="margin-right: auto;">
+            <span>🔄 重开</span>
+        </div>
+        <div class="icon-btn" onclick="toggleAudio()">
+            <span id="audio-icon">🔊</span>
+        </div>
+        <div class="icon-btn" onclick="toggleSettings()">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">检测中</span>
+            <span>⚙️</span>
+        </div>
+    </div>
+
+    <div id="toast">提示信息</div>
+
+    <!-- 设置面板 -->
+    <div id="p-settings" class="full-panel hidden" style="z-index: 3000;">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">AI 配置</h2>
+            <input type="text" id="api-url" placeholder="API URL" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; background:#fdfcf8; font-family:inherit;">
+            <input type="password" id="api-key" placeholder="API Key" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; background:#fdfcf8; font-family:inherit;">
+            <input type="text" id="api-model" placeholder="Model Name" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ccc; background:#fdfcf8; font-family:inherit;">
+            <div style="display:flex; gap:10px;">
+                <button class="btn-retro" style="flex:1;" onclick="testConnection()">测试连接</button>
+                <button class="btn-retro" style="flex:1;" onclick="saveSettings()">保存</button>
+                <button class="btn-retro" style="flex:1;" onclick="toggleSettings()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. 天赋选择 -->
+    <div id="p-traits" class="full-panel">
+        <h1 style="color:var(--primary); margin-bottom:10px; font-size: 36px;">浮生若梦</h1>
+        <p id="trait-loading-text" style="color:#666; margin-bottom:30px; font-style:italic;">命运的骰子已经掷下...</p>
+        <div id="traits-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; width: 100%; max-width: 800px;"></div>
+        <button id="btn-to-stats" class="btn-retro hidden" style="margin-top: 40px; padding: 12px 40px;" onclick="goStats()">以此入世</button>
+    </div>
+
+    <!-- 2. 属性分配 -->
+    <div id="p-stats" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="text-align: center; color:var(--primary)">先天属性 (0-100)</h2>
+            <div style="text-align: center; margin-bottom: 30px;">
+                可用点数：<b id="pts-rem" style="color:var(--accent); font-size: 28px;">--</b>
+                <div style="font-size:12px; color:#999; margin-top:5px;">(随机范围: 20-80)</div>
+            </div>
+            
+            <div id="sliders-area"></div>
+
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <button class="btn-retro" style="flex:1;" onclick="autoAllocate()">🎲 听天由命</button>
+                <button class="btn-retro" style="flex:1;" onclick="startGame()">降临人间</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 游戏主界面 -->
+    <div id="game-view" class="hidden">
+        <div class="side-bar">
+            <div class="info-block">
+                <div class="info-row">
+                    <span>性别</span><span class="info-val" id="disp-gender">?</span>
+                </div>
+                <div class="info-row">
+                    <span>学历</span><span class="info-val" id="disp-edu">未入学</span>
+                </div>
+                <div class="info-row">
+                    <span>职业</span><span class="info-val" id="disp-job">无业</span>
+                </div>
+                <div class="info-row">
+                    <span>年薪</span><span class="info-val" id="disp-salary">￥0</span>
+                </div>
+                <div class="info-row" style="margin-top:15px; color:var(--danger);">
+                    <span>资产</span><span class="info-val" id="money-txt">￥0</span>
+                </div>
+            </div>
+            
+            <div id="stat-bars" style="width: 100%;"></div>
+
+            <div class="action-grid">
+                <button class="btn-retro action-btn" onclick="openModal('p-relations')">👥 关系</button>
+                <button class="btn-retro action-btn" onclick="openModal('p-shop')">🏪 商店</button>
+                <button class="btn-retro action-btn" onclick="openModal('p-pets')">🐾 宠物</button>
+            </div>
+        </div>
+        
+        <div class="log-area">
+            <div id="choice-overlay" style="position: absolute; inset: 0; background: rgba(245,242,233,0.98); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+                <h2 id="choice-title" style="margin-bottom: 30px; color: var(--primary); text-align:center;"></h2>
+                <div id="choice-btns" style="width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px;"></div>
+            </div>
+            
+            <div id="event-log"></div>
+            
+            <div style="padding: 20px; border-top: 1px solid var(--border); background: var(--panel); text-align: center;">
+                <button id="next-btn" class="btn-retro" style="width: 100%; max-width: 300px; padding: 12px;" onclick="tick()">推进岁月</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：关系 -->
+    <div id="p-relations" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">人际关系</h2>
+            <div style="text-align:center;color:#666;font-size:12px;margin-bottom:10px;" id="chat-limit-text"></div>
+            <div id="npc-list"></div>
+            <button class="btn-retro" style="width:100%; margin-top:20px;" onclick="closeModal('p-relations')">返回</button>
+        </div>
+    </div>
+
+    <!-- 模态框：聊天 -->
+    <div id="p-chat" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 id="chat-npc-name" style="color:var(--primary); margin-top:0; text-align:center;"></h2>
+            <div id="chat-history" style="padding:15px; border:1px solid var(--border); background:#fff; height:250px; overflow-y:auto; margin-bottom:15px; border-radius:4px; overflow-x: hidden;">
+                <div style="text-align:center; color:#999; font-size:12px;">- 对话开始 -</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" class="chat-input" placeholder="说点什么..." onkeydown="if(event.key==='Enter') sendChat(false)">
+                <button class="btn-retro" onclick="sendChat(false)">发送</button>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn-retro" style="flex:1; font-size:12px;" onclick="sendChat(true)">✨ AI 帮我写</button>
+                <button class="btn-retro" style="flex:1; font-size:12px;" onclick="closeModal('p-chat')">结束对话</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：商店 -->
+    <div id="p-shop" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">时光商店</h2>
+            <div style="text-align:center;color:#666;font-size:12px;margin-bottom:10px;">(商品每年随机刷新，售完即止)</div>
+            <div id="shop-list"></div>
+            <button class="btn-retro" style="width:100%; margin-top:20px;" onclick="closeModal('p-shop')">返回</button>
+        </div>
+    </div>
+
+    <!-- 模态框：宠物 -->
+    <div id="p-pets" class="full-panel hidden">
+        <div class="paper-card">
+            <h2 style="color:var(--primary); margin-top:0;">我的宠物</h2>
+            <div style="text-align:center; color:#666; font-size:12px; margin-bottom:10px;">(每年仅限玩耍1次)</div>
+            <div id="pet-list"></div>
+            <button class="btn-retro" style="width:100%; margin-top:20px;" onclick="closeModal('p-pets')">返回</button>
+        </div>
+    </div>
+
+    <!-- 4. 结局 (经典版) -->
+    <div id="p-death" class="full-panel hidden">
+        <div style="font-size: 40px; color: var(--danger); margin-bottom:20px; font-family: 'KaiTi';">尘埃落定</div>
+        <div id="final-rank" style="font-size: 20px; color:var(--primary); margin-bottom: 20px; font-weight:bold;"></div>
+        
+        <div class="epitaph" id="final-epitaph"></div>
+        <div class="death-summary" id="final-summary">正在生成人生走马灯...</div>
+        
+        <button class="btn-retro" onclick="location.reload()">再入轮回</button>
+    </div>
+<script src="LifeSimulatorLogic.js"></script>
+</body>
+</html>
